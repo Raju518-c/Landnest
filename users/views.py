@@ -263,10 +263,8 @@ class UserListCreateAPIView(APIView):
             except:
                 pass  # Cache not available, continue with database query
             
-            # Start with optimized queryset to avoid N+1 queries
-            queryset = User.objects.filter(role='1').select_related(
-                'referred_by'  # Only if referred_by is a ForeignKey
-            ).prefetch_related(
+            # Start with optimized queryset - no select_related to avoid errors
+            queryset = User.objects.filter(role='1').prefetch_related(
                 # Add prefetch_related only if you actually need these relationships
                 # For now, keeping it minimal to test performance
             )
