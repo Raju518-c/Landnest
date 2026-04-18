@@ -111,7 +111,7 @@ DATABASES = {
         'NAME': 'landnest_db', 
         'USER': 'root', 
         'PASSWORD': 'Root@1234',         
-        'HOST': '2401:4900:938a:1c6b:e58d:5167:b6a5:f667'
+        'HOST': '2401:4900:938a:1c6b:e58d:5167:b6a5:f667',
         'PORT': '3306', 
     } 
 }
