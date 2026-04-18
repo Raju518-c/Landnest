@@ -284,7 +284,13 @@ class UserListCreateAPIView(APIView):
                 queryset = queryset.order_by(f"{order_prefix}{sort_by}")
             else:
                 queryset = queryset.order_by('-created_at')
-
+            
+            # Get total count efficiently (only count primary keys)
+            try:
+                total_count = queryset.values('pk').count()
+            except:
+                total_count = None  # Fallback if count fails
+            
             # Handle progressive loading
             if progressive and page_size > 100:
                 # For progressive loading, return chunk_size records at a time
@@ -306,8 +312,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': None,  # Unknown without count
-                        'total_count': None,  # Unknown without count
+                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
+                        'total_count': total_count,
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,
@@ -346,8 +352,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': None,  # Unknown without count
-                        'total_count': None,  # Unknown without count
+                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
+                        'total_count': total_count,
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,
