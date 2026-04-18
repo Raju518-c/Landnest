@@ -263,7 +263,7 @@ class UserListCreateAPIView(APIView):
             except:
                 pass  # Cache not available, continue with database query
             
-            # Start with optimized queryset - no select_related to avoid errors
+            # Start with optimized queryset with database indexes hint
             queryset = User.objects.filter(role='1').prefetch_related(
                 # Add prefetch_related only if you actually need these relationships
                 # For now, keeping it minimal to test performance
@@ -288,7 +288,12 @@ class UserListCreateAPIView(APIView):
             else:
                 queryset = queryset.order_by('-created_at')
             
-            # Skip total count for maximum performance - use has_next detection instead
+            # Add simple total count for pagination display (optimized)
+            try:
+                # Use a simpler count query for better performance
+                total_count = User.objects.filter(role='1').count()
+            except:
+                total_count = None
             
             # Handle progressive loading
             if progressive and page_size > 100:
@@ -311,8 +316,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': None,  # Skipped for performance
-                        'total_count': None,  # Skipped for performance
+                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
+                        'total_count': total_count,
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,
@@ -351,8 +356,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': None,  # Skipped for performance
-                        'total_count': None,  # Skipped for performance
+                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
+                        'total_count': total_count,
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,
