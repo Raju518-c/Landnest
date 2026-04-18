@@ -284,10 +284,7 @@ class UserListCreateAPIView(APIView):
                 queryset = queryset.order_by(f"{order_prefix}{sort_by}")
             else:
                 queryset = queryset.order_by('-created_at')
-            
-            # Get total count for pagination info
-            total_count = queryset.count()
-            
+
             # Handle progressive loading
             if progressive and page_size > 100:
                 # For progressive loading, return chunk_size records at a time
@@ -300,18 +297,22 @@ class UserListCreateAPIView(APIView):
                 # Serialize the data
                 serializer = UserSerializer(users_queryset, many=True)
                 
+                # Check if there are more records without expensive count()
+                has_next = len(users_queryset) == actual_page_size
+                has_previous = page > 1 or offset > 0
+                
                 # Progressive loading response
                 response_data = {
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': (total_count + page_size - 1) // page_size,
-                        'total_count': total_count,
+                        'total_pages': None,  # Unknown without count
+                        'total_count': None,  # Unknown without count
                         'page_size': page_size,
-                        'has_next': offset + actual_page_size < page_size and ((page - 1) * page_size + offset + actual_page_size) < total_count,
-                        'has_previous': offset > 0 or page > 1,
-                        'next_page': page + 1 if offset + actual_page_size >= page_size and page < ((total_count + page_size - 1) // page_size) else None,
-                        'previous_page': page - 1 if offset == 0 else page,
+                        'has_next': has_next,
+                        'has_previous': has_previous,
+                        'next_page': page + 1 if has_next else None,
+                        'previous_page': page - 1 if has_previous else None,
                         'progressive': True,
                         'offset': offset,
                         'chunk_size': actual_page_size,
@@ -326,30 +327,32 @@ class UserListCreateAPIView(APIView):
                     }
                 }
             else:
-                # Normal pagination for page_size <= 100 or when progressive is disabled
-                paginator = Paginator(queryset, page_size)
-                try:
-                    users_page = paginator.page(page)
-                except PageNotAnInteger:
-                    users_page = paginator.page(1)
-                except EmptyPage:
-                    users_page = paginator.page(paginator.num_pages)
+                # Use efficient offset-based pagination instead of Django Paginator
+                start_index = (page - 1) * page_size
+                end_index = start_index + page_size
                 
-                # Serialize the data
-                serializer = UserSerializer(users_page.object_list, many=True)
+                # Get one extra record to check if there are more pages
+                users_queryset = queryset[start_index:end_index + 1]
+                
+                # Serialize the data (excluding the extra record)
+                serializer = UserSerializer(users_queryset[:page_size], many=True)
+                
+                # Check if there are more records
+                has_next = len(users_queryset) > page_size
+                has_previous = page > 1
                 
                 # Normal pagination response
                 response_data = {
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': paginator.num_pages,
-                        'total_count': total_count,
+                        'total_pages': None,  # Unknown without count
+                        'total_count': None,  # Unknown without count
                         'page_size': page_size,
-                        'has_next': users_page.has_next(),
-                        'has_previous': users_page.has_previous(),
-                        'next_page': page + 1 if users_page.has_next() else None,
-                        'previous_page': page - 1 if users_page.has_previous() else None,
+                        'has_next': has_next,
+                        'has_previous': has_previous,
+                        'next_page': page + 1 if has_next else None,
+                        'previous_page': page - 1 if has_previous else None,
                         'progressive': False,
                     },
                     'filters_applied': {
