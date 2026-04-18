@@ -263,8 +263,13 @@ class UserListCreateAPIView(APIView):
             except:
                 pass  # Cache not available, continue with database query
             
-            # Start with simple queryset to avoid errors
-            queryset = User.objects.filter(role='1')  # Only get customers
+            # Start with optimized queryset to avoid N+1 queries
+            queryset = User.objects.filter(role='1').select_related(
+                'referred_by'  # Only if referred_by is a ForeignKey
+            ).prefetch_related(
+                # Add prefetch_related only if you actually need these relationships
+                # For now, keeping it minimal to test performance
+            )
             
             # Apply filters
             if search:
@@ -285,11 +290,7 @@ class UserListCreateAPIView(APIView):
             else:
                 queryset = queryset.order_by('-created_at')
             
-            # Get total count efficiently (only count primary keys)
-            try:
-                total_count = queryset.values('pk').count()
-            except:
-                total_count = None  # Fallback if count fails
+            # Skip total count for maximum performance - use has_next detection instead
             
             # Handle progressive loading
             if progressive and page_size > 100:
@@ -300,8 +301,8 @@ class UserListCreateAPIView(APIView):
                 # Apply slicing for progressive loading
                 users_queryset = queryset[start_index:start_index + actual_page_size]
                 
-                # Serialize the data
-                serializer = UserSerializer(users_queryset, many=True)
+                # Serialize the data with lightweight serializer
+                serializer = UserListSerializer(users_queryset, many=True)
                 
                 # Check if there are more records without expensive count()
                 has_next = len(users_queryset) == actual_page_size
@@ -312,8 +313,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
-                        'total_count': total_count,
+                        'total_pages': None,  # Skipped for performance
+                        'total_count': None,  # Skipped for performance
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,
@@ -340,8 +341,8 @@ class UserListCreateAPIView(APIView):
                 # Get one extra record to check if there are more pages
                 users_queryset = queryset[start_index:end_index + 1]
                 
-                # Serialize the data (excluding the extra record)
-                serializer = UserSerializer(users_queryset[:page_size], many=True)
+                # Serialize the data with lightweight serializer (excluding the extra record)
+                serializer = UserListSerializer(users_queryset[:page_size], many=True)
                 
                 # Check if there are more records
                 has_next = len(users_queryset) > page_size
@@ -352,8 +353,8 @@ class UserListCreateAPIView(APIView):
                     'results': serializer.data,
                     'pagination': {
                         'current_page': page,
-                        'total_pages': (total_count + page_size - 1) // page_size if total_count else None,
-                        'total_count': total_count,
+                        'total_pages': None,  # Skipped for performance
+                        'total_count': None,  # Skipped for performance
                         'page_size': page_size,
                         'has_next': has_next,
                         'has_previous': has_previous,

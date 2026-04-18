@@ -142,6 +142,20 @@ class loghistorySerializer(serializers.ModelSerializer):
         model = loghistory
         fields = '__all__'
 
+# Lightweight serializer for list views - much faster
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'user_id', 'username', 'first_name', 'last_name', 'email', 'mobile_no',
+            'profile', 'state', 'city', 'user_type', 'created_at', 'updated_at',
+            'tersm_and_condition', 'credit_points', 'total_points_earned'
+        ]
+        extra_kwargs = {
+            'password': {'write_only': True}
+        }
+
+# Full serializer for detail views - includes all nested data
 class UserSerializer(serializers.ModelSerializer): 
     user_vendor = VendorSerializer(many=True, read_only=True)
     user_best_deals = best_dealsSerializer(many=True, read_only=True)
