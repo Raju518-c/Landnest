@@ -54,13 +54,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [    
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'users.middleware.SingleDeviceLoginMiddleware',
 
 ]
@@ -79,7 +79,30 @@ REST_FRAMEWORK = {
 
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Specific CORS settings for search endpoints
+CORS_URLS_REGEX = r'^/api/.*$'  
 
 ROOT_URLCONF = 'landnest.urls'
 
@@ -111,7 +134,7 @@ DATABASES = {
         'NAME': 'landnest_db', 
         'USER': 'root', 
         'PASSWORD': 'Root@1234',         
-        'HOST': '2401:4900:938a:1c6b:e58d:5167:b6a5:f667',
+        'HOST': '2401:4900:9357:eb6a:d138:6c30:1eda:a08f',                 
         'PORT': '3306', 
     } 
 }

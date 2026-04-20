@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from .simple_search_views import *
 from .subscription_api import GenerateSubscriptionDataAPI
 
 urlpatterns = [
@@ -84,6 +85,11 @@ urlpatterns = [
     path("generate-dummy-users/", GenerateDummyUsersAPI.as_view()),
     
     path("generate-subscription-data/", GenerateSubscriptionDataAPI.as_view()),
+
+    # Search API endpoints
+    path('api/search/universal/', UniversalSearchAPIView.as_view()),
+    path('api/search/suggestions/', SearchSuggestionsAPIView.as_view()),
+    path('api/search/health/', SearchHealthAPIView.as_view()),
 
     
 ]   
